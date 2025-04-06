@@ -192,8 +192,7 @@ async def process_tech_doc(message: Message, state: FSMContext, session: AsyncSe
         local_file_path = f"temp_{message.document.file_id}{os.path.splitext(file_name)[1]}"
         with open(local_file_path, 'wb') as f:
             f.write(downloaded_file.read())
-        ollama_host = os.getenv('OLLAMA_HOST', 'http://192.168.1.18:11434')
-        load_dotenv()
+        ollama_host = 'http://192.168.1.18:11434'
         pdf_chat = PDFChat(ollama_host=ollama_host)
         
         # Load the document based on its type
@@ -369,12 +368,20 @@ async def process_get_recommendations(callback_query: CallbackQuery, state: FSMC
         results = qa_system.answer_question(legal_question)
         
         if results.get("ответы"):
+
+                        
             # Format the response
             response = f"🔍 Сформулированный вопрос:\n{legal_question}\n\n"
             response += "📚 Рекомендуемые нормативно-правовые акты:\n\n"
             for i, answer in enumerate(results["ответы"], 1):
+                             # Convert confidence to text format
+                confidence_text = "маловажно"
+                if answer["уверенность"] > 0.9:
+                    confidence_text = "очень важно"
+                elif answer["уверенность"] > 0.8:
+                    confidence_text = "важно"
                 response += f"{i}. {answer['документ']}\n"
-                response += f"Релевантность: {answer['уверенность']:.2f}\n"
+                response +=     f"Релевантность: {confidence_text}\n\n"
                 response += f"Обоснование: {answer['ответ']}\n\n"
         else:
             response = "❌ Не найдено релевантных нормативно-правовых актов."
@@ -467,18 +474,35 @@ async def analyze_tz_text(callback_query: CallbackQuery, state: FSMContext):
                             
                             used_npas.add(doc)
                             
+                            # Convert confidence to text format
+                            confidence_text = "маловажно"
+                            if answer["уверенность"] > 0.9:
+                                confidence_text = "очень важно"
+                            elif answer["уверенность"] > 0.8:
+                                confidence_text = "важно"
+                            
                             if "нарушен" in answer["ответ"].lower() or "требует" in answer["ответ"].lower():
                                 violations.append(
                                     f"<div class='violation'>"
                                     f"<em><strong>⚠️ {answer['ответ']}</strong></em><br>"
-                                    f"<span class='reference'>📚 {reference}</span>"
+                                    f"<span class='reference'>📚 {reference}</span><br>"
+                                    f"<span class='relevance'>Релевантность: {confidence_text}</span>"
                                     f"</div>"
                                 )
                 
                 if violations:
                     html_response += "\n".join(violations)
                 
-                # Check for stylistic issues
+                # First add used NPAs before style recommendations
+                if used_npas:
+                    html_response += "<div class='used-npas'>"
+                    html_response += "<h3>Использованные нормативно-правовые акты:</h3>"
+                    html_response += "<ul class='npa-list'>"
+                    for npa in sorted(used_npas):
+                        html_response += f"<li>{npa}</li>"
+                    html_response += "</ul></div>"
+                
+                # Then check for stylistic issues
                 style_question = f"Проверь следующий текст на стилистические ошибки и неточности формулировок: {section_content}"
                 style_analysis = pdf_chat.ask(style_question)
                 
@@ -514,15 +538,6 @@ async def analyze_tz_text(callback_query: CallbackQuery, state: FSMContext):
                 </div>
             </div>
             """
-        
-        # Add section with used NPAs
-        if used_npas:
-            html_response += "<div class='used-npas'>"
-            html_response += "<h3>Использованные нормативно-правовые акты:</h3>"
-            html_response += "<ul class='npa-list'>"
-            for npa in sorted(used_npas):
-                html_response += f"<li>{npa}</li>"
-            html_response += "</ul></div>"
         
         # Save the HTML file
         output_path = "tz_analysis.html"
@@ -591,6 +606,12 @@ async def analyze_tz_text(callback_query: CallbackQuery, state: FSMContext):
                         margin-top: 10px;
                         color: #4a5568;
                         font-size: 0.9em;
+                    }}
+                    .relevance {{
+                        display: block;
+                        margin-top: 5px;
+                        color: #718096;
+                        font-size: 0.85em;
                     }}
                     .style-note {{
                         background-color: #ebf8ff;
@@ -815,7 +836,7 @@ async def main():
     dp = Dispatcher(storage=storage)
 
     # Инициализируем PDFChat
-    ollama_host = os.getenv('OLLAMA_HOST', 'http://192.168.1.18:11434')
+    ollama_host = 'http://192.168.1.18:11434'
     pdf_chat = PDFChat(ollama_host=ollama_host)
 
     # Сохраняем PDFChat в data для использования в обработчиках

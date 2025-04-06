@@ -1,0 +1,37 @@
+ip: 45.81.243.111
+login: root
+passwordk: 5258jSBney
+
+БД
+подключение к бд: ssh root@45.81.243.111
+зайти в бд: sudo -u postgres psql
+
+отображение всех табл: \dt
+просмотр данных таблицы: SELECT * FROM users;
+
+удаление таблицы: DROP TABLE имя_таблицы;
+удаление всех строк таблицы: TRUNCATE TABLE ваше_имя_таблицы;
+
+выход из psql: \q
+
+
+
+
+
+
+
+GITHUB
+#добавление удалённого репозиторий: git remote add и ссылка
+#добавление файлов: git add .
+#сохранение кода: git commit -m "Первый коммит" чекпоинт
+#команда для добавления удалённого репозитория: git remote add origin https://github.com/ostap828/hak-zvuk2.0.git
+
+
+#просмотр созданных веток: git branch
+#просмотр удалённых веток: git branch -r
+#подключение к ветке: git branch dev-db_and_redistration
+
+#чтобы клонировать репозиторий (обязательно должно заканчиваться на .git):
+https://github.com/ostap828/hak-zvuk2.0.git
+
+
